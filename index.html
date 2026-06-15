@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>회의록 메모장</title>
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icon-512.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1126,6 +1127,9 @@ document.getElementById('catName').addEventListener('keydown',e=>{ if(e.key==='E
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeMemoMeta(); closeEntry(); closeCat(); closeSettings(); } });
 
 (async()=>{ await load(); render(); })();
+
+// PWA: 오프라인 동작을 위한 서비스워커 등록
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); }); }
 </script>
 </body>
 </html>
