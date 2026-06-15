@@ -746,7 +746,16 @@ function buildEntryDetail(){
       <button class="icon-btn danger" id="delEntryBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>삭제</button>
     </div>`;
   wrap.appendChild(head);
-  head.querySelector('#backBtn').addEventListener('click',()=>{ state.openEntryId=null; if(state._entryFrom==='list') state.openMemoId=null; render(); });
+  head.querySelector('#backBtn').addEventListener('click',()=>{
+    const from=state._entryFrom; state.openEntryId=null;
+    if(from!=='memo'){ // 메모 안 목록에서 온 게 아니면 중간 단계 건너뛰고 출처로 복귀
+      state.openMemoId=null;
+      if(from==='dashboard') state.view='dashboard';
+      else if(from==='calendar') state.view='calendar';
+      else if(from==='list') state.view='list';
+    }
+    render();
+  });
   head.querySelector('#addToMemoBtn').addEventListener('click',()=>openEntry(m.id,null));
   head.querySelector('#editEntryBtn').addEventListener('click',()=>openEntry(m.id,en.id));
   head.querySelector('#delEntryBtn').addEventListener('click',()=>deleteEntry(m.id,en.id));
