@@ -57,6 +57,8 @@
   .cat-act { opacity:0; width:20px; height:20px; border-radius:5px; display:grid; place-items:center; color:var(--faint); flex-shrink:0; }
   .cat-item:hover .cat-act { opacity:1; }
   .cat-act:hover { background:rgba(0,0,0,.06); color:var(--ink); }
+  /* 터치 기기(아이패드 등): 호버가 없어 첫 탭이 '호버'로 소모되는 더블탭 문제 방지 — 액션 버튼을 항상 노출 */
+  @media (hover: none) { .cat-act { opacity:1; } }
   .sub-item { padding-left:30px; }
   .sub-item .cat-dot { width:7px; height:7px; }
   .sub-item .cat-name { font-size:13px; }
