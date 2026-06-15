@@ -339,6 +339,9 @@
         <button id="exportBtn">백업 내보내기</button>
         <button id="importBtn">가져오기</button>
       </div>
+      <div class="backup-row">
+        <button id="settingsBtn"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>AI 설정 (API 키)</button>
+      </div>
       <input type="file" id="importFile" accept="application/json,.json" style="display:none">
     </div>
   </aside>
@@ -401,6 +404,21 @@
     <div class="field"><label>색상</label><div class="color-grid" id="colorGrid"></div></div>
   </div>
   <div class="modal-foot"><button class="btn-del" id="catDelete" style="display:none">삭제</button><button class="btn-ghost" id="catCancel">취소</button><button class="btn-save" id="catSave">저장</button></div>
+</div></div>
+
+<!-- Settings modal -->
+<div class="overlay" id="settingsOverlay"><div class="modal" style="max-width:480px">
+  <div class="modal-head"><span class="mh-title">AI 설정</span><button class="close" id="settingsClose" aria-label="닫기"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+  <div class="modal-body">
+    <div class="field"><label>Anthropic API 키 <span class="hint">AI 요약 기능에 사용돼요</span></label>
+      <input class="inp" id="apiKeyInput" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false"></div>
+    <div class="parent-note" style="display:block;line-height:1.6">
+      이 키는 <b>이 브라우저(이 기기)에만 저장</b>되며, 요약할 때 Anthropic 서버로만 전송됩니다. 서버에 따로 올라가지 않아요.<br>
+      키 발급: <span style="font-family:var(--mono);font-size:12px">console.anthropic.com</span> → API Keys<br>
+      <span style="color:var(--faint)">※ 개인 기기에서만 사용하세요. 공용 PC에서는 사용 후 키를 비워두는 걸 권장합니다.</span>
+    </div>
+  </div>
+  <div class="modal-foot"><button class="btn-del" id="apiKeyClear" style="display:none">키 삭제</button><button class="btn-ghost" id="settingsCancel">취소</button><button class="btn-save" id="settingsSave">저장</button></div>
 </div></div>
 
 <div class="toast" id="toast"></div>
@@ -739,9 +757,21 @@ function aiPanel(title,text,onRerun){
 }
 
 // ----- AI summary -----
+const AI_MODEL='claude-opus-4-8';
+const APIKEY='anthropic-api-key';
+function getApiKey(){ try{ return (localStorage.getItem(APIKEY)||'').trim(); }catch(e){ return ''; } }
+function setApiKey(k){ try{ if(k) localStorage.setItem(APIKEY,k); else localStorage.removeItem(APIKEY); }catch(e){} }
+class NoKeyError extends Error{}
 async function callClaude(prompt){
-  const res=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({ model:"claude-sonnet-4-20250514", max_tokens:1000, messages:[{role:"user",content:prompt}] }) });
+  const key=getApiKey();
+  // 브라우저에서 직접 호출: 사용자가 저장한 API 키 사용
+  // (키가 없으면 Claude 앱 환경의 프록시 호출로 폴백 — 일반 웹에선 실패)
+  const headers={"Content-Type":"application/json"};
+  if(key){ headers["x-api-key"]=key; headers["anthropic-version"]="2023-06-01"; headers["anthropic-dangerous-direct-browser-access"]="true"; }
+  else if(!window.storage){ throw new NoKeyError('no-key'); }
+  const res=await fetch("https://api.anthropic.com/v1/messages",{ method:"POST", headers,
+    body:JSON.stringify({ model:AI_MODEL, max_tokens:2000, messages:[{role:"user",content:prompt}] }) });
+  if(res.status===401) throw new Error('API 키가 올바르지 않습니다. (401)');
   if(!res.ok) throw new Error('status '+res.status);
   const data=await res.json();
   return (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n').trim();
@@ -760,7 +790,7 @@ async function runEntrySummary(m,en){
     en.aiSummary=out; await save();
     bodyEl.className='ai-text'; bodyEl.textContent=out;
     if(!document.querySelector('.ai-panel .rerun')){ const r=document.createElement('button'); r.className='rerun'; r.textContent='다시 요약'; r.addEventListener('click',()=>runEntrySummary(m,en)); document.querySelector('.ai-panel .ai-top').appendChild(r); }
-  }catch(e){ bodyEl.className='ai-text'; bodyEl.textContent='요약을 불러오지 못했어요. 이 기능은 Claude 앱 안에서 실행할 때 작동합니다. (오류: '+e.message+')'; }
+  }catch(e){ aiError(bodyEl,e); }
 }
 async function runMemoSummary(m){
   let panel=document.querySelector('.ai-panel'); let bodyEl;
@@ -772,7 +802,16 @@ async function runMemoSummary(m){
     m.aiSummary=out; await save();
     bodyEl.className='ai-text'; bodyEl.textContent=out;
     if(!document.querySelector('.ai-panel .rerun')){ const r=document.createElement('button'); r.className='rerun'; r.textContent='다시 요약'; r.addEventListener('click',()=>runMemoSummary(m)); document.querySelector('.ai-panel .ai-top').appendChild(r); }
-  }catch(e){ bodyEl.className='ai-text'; bodyEl.textContent='요약을 불러오지 못했어요. 이 기능은 Claude 앱 안에서 실행할 때 작동합니다. (오류: '+e.message+')'; }
+  }catch(e){ aiError(bodyEl,e); }
+}
+function aiError(bodyEl,e){
+  bodyEl.className='ai-text';
+  if(e instanceof NoKeyError){
+    bodyEl.innerHTML='AI 요약을 사용하려면 API 키가 필요해요. ';
+    const b=document.createElement('button'); b.className='rerun'; b.textContent='AI 설정 열기'; b.addEventListener('click',openSettings); bodyEl.appendChild(b);
+  } else {
+    bodyEl.textContent='요약을 불러오지 못했어요. (오류: '+e.message+')';
+  }
 }
 
 // ----- print -----
@@ -1007,11 +1046,24 @@ function importData(file){
 function openDrawer(){ document.getElementById('sidebar').classList.add('open'); document.getElementById('scrim').classList.add('show'); }
 function closeDrawer(){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('scrim').classList.remove('show'); }
 
+// ----- settings -----
+function openSettings(){ const k=getApiKey(); document.getElementById('apiKeyInput').value=k; document.getElementById('apiKeyClear').style.display=k?'inline-flex':'none'; document.getElementById('settingsOverlay').classList.add('show'); closeDrawer(); }
+function closeSettings(){ document.getElementById('settingsOverlay').classList.remove('show'); }
+function saveSettings(){ setApiKey(document.getElementById('apiKeyInput').value.trim()); closeSettings(); toast('AI 설정을 저장했어요'); }
+function clearApiKey(){ setApiKey(''); document.getElementById('apiKeyInput').value=''; document.getElementById('apiKeyClear').style.display='none'; toast('API 키를 삭제했어요'); }
+
 // ----- events -----
 document.getElementById('brand').addEventListener('click',goDashboard);
 document.getElementById('exportBtn').addEventListener('click',exportData);
 document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change',e=>{ if(e.target.files[0]) importData(e.target.files[0]); e.target.value=''; });
+document.getElementById('settingsBtn').addEventListener('click',openSettings);
+document.getElementById('settingsClose').addEventListener('click',closeSettings);
+document.getElementById('settingsCancel').addEventListener('click',closeSettings);
+document.getElementById('settingsSave').addEventListener('click',saveSettings);
+document.getElementById('apiKeyClear').addEventListener('click',clearApiKey);
+document.getElementById('apiKeyInput').addEventListener('keydown',e=>{ if(e.key==='Enter') saveSettings(); });
+document.getElementById('settingsOverlay').addEventListener('click',e=>{ if(e.target.id==='settingsOverlay') closeSettings(); });
 document.getElementById('navDash').addEventListener('click',goDashboard);
 document.getElementById('navAll').addEventListener('click',()=>selectCat('all'));
 document.getElementById('addCatBtn').addEventListener('click',()=>openCatModal(null,null));
@@ -1044,7 +1096,7 @@ document.getElementById('catDelete').addEventListener('click',deleteCat);
 document.getElementById('catName').addEventListener('keydown',e=>{ if(e.key==='Enter') saveCat(); });
 
 [['memoOverlay',closeMemoMeta],['entryOverlay',closeEntry],['catOverlay',closeCat]].forEach(([id,fn])=>{ document.getElementById(id).addEventListener('click',e=>{ if(e.target.id===id) fn(); }); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeMemoMeta(); closeEntry(); closeCat(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeMemoMeta(); closeEntry(); closeCat(); closeSettings(); } });
 
 (async()=>{ await load(); render(); })();
 </script>
