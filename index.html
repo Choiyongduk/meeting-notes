@@ -660,7 +660,7 @@ function memoCard(m){
   const lt=latest?(entrySubtitle(latest)?`<b style="color:${color}">${esc(entrySubtitle(latest))}</b> · `:'')+(latest.content?esc(latest.content.slice(0,90)):'(내용 없음)'):'<span class="empty-body">아직 항목이 없어요</span>';
   card.innerHTML=`<div class="mc-top"><span class="tag" style="--cat:${color};--catsoft:${softColor(color)}">${esc(catName(m.categoryId))}</span><span class="mc-count">${(m.entries||[]).length}개 항목</span></div>
     <h3>${esc(m.title)}</h3><div class="mc-latest">${lt}</div>${latest?`<div class="mc-date">최근 ${prettyDate(latest.date)} (${weekdayKo(latest.date)})</div>`:''}`;
-  card.addEventListener('click',()=>openMemoDetail(m.id));
+  card.addEventListener('click',()=>{ const es=m.entries||[]; if(es.length===1) openEntryDetail(m.id,es[0].id,'list'); else openMemoDetail(m.id); });
   return card;
 }
 function entryRow(memo,entry,q){
@@ -741,11 +741,13 @@ function buildEntryDetail(){
     <div class="detail-actions">
       <button class="icon-btn ai" id="aiBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z"/></svg>AI 요약</button>
       <button class="icon-btn" id="printBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>인쇄</button>
+      <button class="icon-btn" id="addToMemoBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>회의 추가</button>
       <button class="icon-btn" id="editEntryBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>편집</button>
       <button class="icon-btn danger" id="delEntryBtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>삭제</button>
     </div>`;
   wrap.appendChild(head);
-  head.querySelector('#backBtn').addEventListener('click',()=>{ state.openEntryId=null; render(); });
+  head.querySelector('#backBtn').addEventListener('click',()=>{ state.openEntryId=null; if(state._entryFrom==='list') state.openMemoId=null; render(); });
+  head.querySelector('#addToMemoBtn').addEventListener('click',()=>openEntry(m.id,null));
   head.querySelector('#editEntryBtn').addEventListener('click',()=>openEntry(m.id,en.id));
   head.querySelector('#delEntryBtn').addEventListener('click',()=>deleteEntry(m.id,en.id));
   head.querySelector('#printBtn').addEventListener('click',()=>printEntry(m,en));
@@ -1000,11 +1002,11 @@ function newNote(presetDate){
   setTimeout(()=>document.getElementById('entryNewMemoTitle').focus(),60);
 }
 async function saveEntry(){
-  syncTempFields(); let memoId=state.entryMemoId;
+  syncTempFields(); let memoId=state.entryMemoId; let createdNew=false;
   if(!memoId){ const sel=document.getElementById('entryMemoSel').value;
     if(sel==='__new__'){ const t=document.getElementById('entryNewMemoTitle').value.trim(),cat=document.getElementById('entryNewMemoCat').value;
-      if(!t){ toast('새 메모 제목을 입력해주세요'); return; }
-      const nm={id:uid(),categoryId:cat,title:t,defaultFields:[],createdAt:Date.now(),updatedAt:Date.now(),entries:[]}; state.memos.push(nm); memoId=nm.id; }
+      if(!t){ toast('제목을 입력해주세요'); return; }
+      const nm={id:uid(),categoryId:cat,title:t,defaultFields:[],createdAt:Date.now(),updatedAt:Date.now(),entries:[]}; state.memos.push(nm); memoId=nm.id; createdNew=true; }
     else memoId=sel; }
   const m=memoById(memoId); if(!m){ toast('메모를 찾을 수 없어요'); return; }
   const date=document.getElementById('entryDate').value||todayStr(); const content=document.getElementById('entryBody').value;
@@ -1013,7 +1015,11 @@ async function saveEntry(){
   let openId;
   if(state.entryId){ const en=m.entries.find(e=>e.id===state.entryId); en.date=date; en.content=content; en.fields=fields; en.updatedAt=Date.now(); delete en.aiSummary; openId=en.id; }
   else { const ne={id:uid(),date,fields,content,createdAt:Date.now(),updatedAt:Date.now()}; m.entries.push(ne); openId=ne.id; }
-  m.updatedAt=Date.now(); await save(); closeEntry(); openEntryDetail(memoId,openId,'memo'); toast('저장했어요');
+  m.updatedAt=Date.now(); await save(); closeEntry();
+  if(createdNew){ // 새 메모 작성: 목록으로 돌아가 방금 만든 메모가 보이게
+    state.selectedCat=m.categoryId; state.view='list'; state.openMemoId=null; state.openEntryId=null;
+    state.search=''; document.getElementById('search').value=''; render(); toast('메모를 만들었어요');
+  } else { openEntryDetail(memoId,openId,'memo'); toast('저장했어요'); }
 }
 async function deleteEntry(memoId,entryId){
   if(!confirm('이 항목을 삭제할까요?')) return;

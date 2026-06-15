@@ -1,6 +1,6 @@
 // 회의록 메모장 서비스워커 — 오프라인 동작 + 빠른 실행
 // 앱 파일을 바꿔서 배포할 때는 아래 버전 숫자를 올려주세요 (예: mn-v1 -> mn-v2)
-const CACHE = 'mn-v1';
+const CACHE = 'mn-v2';
 const SHELL = [
   './',
   './index.html',
