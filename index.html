@@ -384,7 +384,7 @@
 <div class="overlay" id="memoOverlay"><div class="modal" style="max-width:500px">
   <div class="modal-head"><span class="mh-title" id="memoModalTitle">새 메모</span><button class="close" id="memoClose" aria-label="닫기"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
   <div class="modal-body">
-    <div class="field"><input class="inp title-inp" id="memoTitle" type="text" placeholder="메모 제목 (예: 업체 회의)"></div>
+    <div class="field"><input class="inp title-inp" id="memoTitle" type="text" placeholder="메모 제목 (예: 업체 회의)" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
     <div class="field"><label>카테고리</label><select class="inp" id="memoCat"></select></div>
     <div class="field"><label>기본 칸 <span class="hint">새 항목에 자동으로 뜨는 칸 (예: 업체명, 참석자)</span></label>
       <div id="defFields"></div>
@@ -401,14 +401,14 @@
     <div id="entryMemoPick" style="display:none">
       <div class="field" id="entryMemoSelRow"><label>메모</label><select class="inp" id="entryMemoSel"></select></div>
       <div id="newMemoFields" style="display:none"><div class="row2">
-        <div class="field"><label>제목</label><input class="inp" id="entryNewMemoTitle" placeholder="예: 업체 회의 / A업체 미팅"></div>
+        <div class="field"><label>제목</label><input class="inp" id="entryNewMemoTitle" placeholder="예: 업체 회의 / A업체 미팅" autocomplete="off" autocorrect="off" autocapitalize="off"></div>
         <div class="field"><label>카테고리</label><select class="inp" id="entryNewMemoCat"></select></div>
       </div></div>
     </div>
     <div class="field"><label>날짜</label><input class="inp" id="entryDate" type="date" style="max-width:200px"></div>
     <div class="field"><label>칸 <span class="hint">자유롭게 추가·삭제</span></label><div id="entryFields"></div>
       <button class="add-field" id="addFieldBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>칸 추가</button></div>
-    <div class="field"><label>내용</label><textarea class="inp" id="entryBody" placeholder="회의 내용, 결정 사항, 액션 아이템..."></textarea></div>
+    <div class="field"><label>내용</label><textarea class="inp" id="entryBody" placeholder="회의 내용, 결정 사항, 액션 아이템..." autocomplete="off" autocorrect="off" autocapitalize="off"></textarea></div>
   </div>
   <div class="modal-foot"><button class="btn-del" id="entryDelete" style="display:none">삭제</button><button class="btn-ghost" id="entryCancel">취소</button><button class="btn-save" id="entrySave">저장</button></div>
 </div></div>
@@ -959,7 +959,7 @@ function renderEntryFields(){
   const c=document.getElementById('entryFields'); c.innerHTML='';
   state.tempFields.forEach(f=>{
     const row=document.createElement('div'); row.className='frow'; row.dataset.id=f.id;
-    row.innerHTML=`<input class="inp finp-label" placeholder="항목명 (예: 업체명)" value="${esc(f.label)}"><input class="inp finp-value" placeholder="값 (예: A업체)" value="${esc(f.value)}">
+    row.innerHTML=`<input class="inp finp-label" placeholder="항목명 (예: 업체명)" value="${esc(f.label)}" name="l_${f.id}" autocomplete="off" autocorrect="off" autocapitalize="off"><input class="inp finp-value" placeholder="값 (예: A업체)" value="${esc(f.value)}" name="v_${f.id}" autocomplete="off" autocorrect="off" autocapitalize="off">
       <button class="frow-del" aria-label="삭제"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>`;
     row.querySelector('.frow-del').addEventListener('click',()=>{ syncTempFields(); state.tempFields=state.tempFields.filter(x=>x.id!==f.id); renderEntryFields(); });
     c.appendChild(row);
@@ -975,6 +975,7 @@ function openEntry(memoId,entryId,presetDate){
     state.memos.forEach(m=>{ const o=document.createElement('option'); o.value=m.id; o.textContent=`${m.title} (${catName(m.categoryId)})`; sel.appendChild(o); });
     const no=document.createElement('option'); no.value='__new__'; no.textContent='＋ 새 메모 만들기…'; sel.appendChild(no);
     fillCatSelect(document.getElementById('entryNewMemoCat'),defaultCatForNew()); document.getElementById('newMemoFields').style.display='none';
+    document.getElementById('entryNewMemoTitle').value=''; // 새 메모 제목 칸 초기화(이전 글자 남음 방지)
     if(state.memos.length===0){ sel.value='__new__'; document.getElementById('newMemoFields').style.display='block'; }
   }
   const del=document.getElementById('entryDelete');
