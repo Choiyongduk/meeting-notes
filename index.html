@@ -298,11 +298,6 @@
   }
 
   @media (max-width:860px) {
-    .sidebar { position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); transition:transform .25s ease; box-shadow:0 0 40px rgba(0,0,0,.15); }
-    .sidebar.open { transform:translateX(0); }
-    .scrim { display:block; position:fixed; inset:0; background:rgba(20,25,35,.4); z-index:35; opacity:0; pointer-events:none; transition:opacity .25s; }
-    .scrim.show { opacity:1; pointer-events:auto; }
-    .menu-btn { display:flex; }
     .new-btn span.lbl { display:none; }
     .new-btn { padding:0 12px; }
     .topbar { padding:0 14px; gap:10px; }
@@ -317,6 +312,15 @@
     .detail-head { flex-wrap:wrap; }
     .detail-actions { width:100%; justify-content:flex-start; }
     .icon-btn { font-size:12px; padding:0 11px; height:34px; }
+  }
+
+  /* 폰(좁은 화면)에서만 사이드바를 드로어(햄버거)로 — 아이패드 등 넓은 화면에선 항상 노출 */
+  @media (max-width:680px) {
+    .sidebar { position:fixed; left:0; top:0; bottom:0; transform:translateX(-100%); transition:transform .25s ease; box-shadow:0 0 40px rgba(0,0,0,.15); }
+    .sidebar.open { transform:translateX(0); }
+    .scrim { display:block; position:fixed; inset:0; background:rgba(20,25,35,.4); z-index:35; opacity:0; pointer-events:none; transition:opacity .25s; }
+    .scrim.show { opacity:1; pointer-events:auto; }
+    .menu-btn { display:flex; }
   }
 </style>
 </head>
